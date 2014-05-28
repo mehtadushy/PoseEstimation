@@ -42,31 +42,31 @@ Eigen::Matrix<double,6,1> rt_dlt(const Eigen::MatrixX3f & obj_pts,const Eigen::M
         Eigen::Vector3f ob_pt = obj_pts.row(i);
         Eigen::Vector3f pr_pt = proj_pts.row(i);
 
-        M(2*i,0) = -ob_pt(0);            //-X
-        M(2*i,1) = -ob_pt(1);            //-Y
-        M(2*i,2) = -ob_pt(2);            //-Z
+        M(2*i,0) = ob_pt(0);            //-X
+        M(2*i,1) = ob_pt(1);            //-Y
+        M(2*i,2) = ob_pt(2);            //-Z
         M(2*i,3) = 0;
         M(2*i,4) = 0;
         M(2*i,5) = 0;
-        M(2*i,6) = ob_pt(0)*pr_pt(0);    //Xx
-        M(2*i,7) = ob_pt(1)*pr_pt(0);    //Yx
-        M(2*i,8) = ob_pt(2)*pr_pt(0);    //Zx
-        M(2*i,9) = -1;
+        M(2*i,6) = -ob_pt(0)*pr_pt(0);    //Xx
+        M(2*i,7) = -ob_pt(1)*pr_pt(0);    //Yx
+        M(2*i,8) = -ob_pt(2)*pr_pt(0);    //Zx
+        M(2*i,9) = 1;
         M(2*i,10) = 0;
-        M(2*i,11) = pr_pt(0);            //x
+        M(2*i,11) = -pr_pt(0);            //x
 
-        M(2*i+1,3) = -ob_pt(0);            //-X
-        M(2*i+1,4) = -ob_pt(1);            //-Y
-        M(2*i+1,5) = -ob_pt(2);            //-Z
+        M(2*i+1,3) = ob_pt(0);            //-X
+        M(2*i+1,4) = ob_pt(1);            //-Y
+        M(2*i+1,5) = ob_pt(2);            //-Z
         M(2*i+1,0) = 0;
         M(2*i+1,1) = 0;
         M(2*i+1,2) = 0;
-        M(2*i+1,6) = ob_pt(0)*pr_pt(1);    //Xy
-        M(2*i+1,7) = ob_pt(1)*pr_pt(1);    //Yy
-        M(2*i+1,8) = ob_pt(2)*pr_pt(1);    //Zy
+        M(2*i+1,6) = -ob_pt(0)*pr_pt(1);    //Xy
+        M(2*i+1,7) = -ob_pt(1)*pr_pt(1);    //Yy
+        M(2*i+1,8) = -ob_pt(2)*pr_pt(1);    //Zy
         M(2*i+1,9) = 0;
-        M(2*i+1,10) = -1;
-        M(2*i+1,11) = pr_pt(1);            //y
+        M(2*i+1,10) = 1;
+        M(2*i+1,11) = -pr_pt(1);            //y
 
     }
 
@@ -75,14 +75,21 @@ Eigen::Matrix<double,6,1> rt_dlt(const Eigen::MatrixX3f & obj_pts,const Eigen::M
     MTM = M.transpose()*M;
 
     //Do SVD of MTM
-    Eigen::JacobiSVD<Eigen::MatrixXf> svd(MTM, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    Eigen::JacobiSVD<Eigen::MatrixXf> svd(MTM, Eigen::ComputeThinU);
     //Get the eigenvector corresponding to the smallest eigenvalue
-    Eigen::MatrixXf Matv = svd.matrixV();
-    v = Matv.col(Matv.cols()-1);
-
+    Eigen::MatrixXf MatU = svd.matrixU();
+    int nz_num = svd.nonzeroSingularValues();
+    v = MatU.col(nz_num - 1);
+    float scale = v(0)*v(0)+v(1)*v(1)+v(2)*v(2)+v(3)*v(3)+v(4)*v(4)+v(5)*v(5)+v(6)*v(6)+v(7)*v(7)+v(8)*v(8);
+    scale/=3;
+    scale = pow(scale,0.5);
+    //Take care of scaling
+    v = v /scale;
+    //std::cout<<"Size of U"<<MatU.rows()<<" "<<MatU.cols()<<"\n";
+    std::cout<<"V: "<<v.transpose()<<"\n";
     Eigen::Matrix3f rot_mat;
     rot_mat<< v(0),v(1),v(2),v(3),v(4),v(5),v(6),v(7),v(8);
-    Eigen::Vector3f euler = rot_mat.eulerAngles(3,2,1);
+    Eigen::Vector3f euler = rot_mat.eulerAngles(2,1,0);
      //The vector to be returned carries 3 euler angles and 3 translation elements
     Eigen::VectorXd x(6);
     x<< v(9),v(10),v(11),euler(0),euler(1),euler(2);

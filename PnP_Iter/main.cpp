@@ -6,7 +6,7 @@
 #include "SolvePnPFunctor.h"
 #include "rt_dlt.h"
 
-#define USE_DLT false  //Use provided guess or use DLT Algorithm to initialize optimizer
+#define USE_DLT true //Use provided guess or use DLT Algorithm to initialize optimizer
 
 using namespace Eigen;
 
@@ -29,15 +29,22 @@ int main(int argc, char *argv[])
     obj_pts.row(5) << -1.88161, 0.316872, -0.215308;	// l ear (v )
     obj_pts.row(6) << 1.80743, 0.227834, -0.23995;	// r ear (v 1315)
 
-    proj_pts.row(0) << 120, 200, 0;
-    proj_pts.row(1) << 235, 210, 0;
-    proj_pts.row(2) << 170, 297, 0;
-    proj_pts.row(3) << 130, 330, 0;
-    proj_pts.row(4) << 201, 335, 0;
-    proj_pts.row(5) << 41, 141, 0;
-    proj_pts.row(6) << 317, 156, 0;
-
-    int imgRows = 474, imgCols=368;
+    //proj_pts.row(0) << 120, 200, 0;
+    //proj_pts.row(1) << 235, 210, 0;
+    //proj_pts.row(2) << 170, 297, 0;
+    //proj_pts.row(3) << 130, 330, 0;
+    //proj_pts.row(4) << 201, 335, 0;
+    //proj_pts.row(5) << 41, 141, 0;
+    //proj_pts.row(6) << 317, 156, 0;
+    //int imgRows = 474, imgCols=368;
+     proj_pts.row(0) <<  93, 109,0;
+     proj_pts.row(1) << 136, 110,0;
+     proj_pts.row(2) << 120, 138,0;
+     proj_pts.row(3) <<  96, 150,0;
+     proj_pts.row(4) << 127, 153,0;
+     proj_pts.row(5) <<  47,  96,0;
+     proj_pts.row(6) << 150,  92,0;
+    int imgRows = 250, imgCols=200;
     camMatrix << std::max(imgRows,imgCols), 0 , imgCols/2.0,
               0 , std::max(imgRows,imgCols), imgRows/2.0,
       0, 0, 1.0 ;
@@ -60,7 +67,8 @@ int main(int argc, char *argv[])
     x = rt_dlt(obj_pts,normalisedProjPoints);
 #else
     //x << 0,0,0,0.0,0.0,1.5;
-     x << -0.035,-1.25,5.8,0.0,0.0,1.5;
+     x << -0.03,-1.25,5.5,0.0,0.0,1.3;
+    //x << -0.035,-1.25,5.8,0.0,0.0,1.5;
 #endif
 
     Matrix3f init_rotation_mat;
@@ -90,7 +98,19 @@ int main(int argc, char *argv[])
       rotation_mat = Eigen::AngleAxisf(x(3), Vector3f::UnitZ())
       * Eigen::AngleAxisf(x(4), Vector3f::UnitY())
       * Eigen::AngleAxisf(x(5), Vector3f::UnitX());
+      Vector3f translate;
+      translate << x(0),x(1),x(2);
       std::cout<<"Rotation Matrix" <<rotation_mat<<"\n";
+      Eigen::MatrixXf Projection(3,7);
+      Projection = (rotation_mat*obj_pts.transpose());
+      std::cout<<"Proj Points  :  Projection\n";
+
+      //Print Projection Points here now
+      for(int i=0; i<proj_pts.rows(); i++)
+      {
+          Projection.col(i)= camMatrix*(Projection.col(i)+translate);
+          std::cout<<proj_pts.row(i)<<" : " << Projection.col(i)[0]/Projection.col(i)[2] <<" "<<Projection.col(i)[1]/Projection.col(i)[2] <<"\n";
+      }
     }
 
 }
